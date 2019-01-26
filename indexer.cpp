@@ -57,7 +57,7 @@ void Indexer::indexDirectory() {
 
         QFileInfo file_info = it.fileInfo();
 
-        index[file_info.filePath()] = std::set<uint32_t>();
+        index[file_info.filePath()] = std::unordered_set<uint32_t>();
 
         total += file_info.size();
     }
@@ -76,6 +76,7 @@ void Indexer::indexDirectory() {
 
         processed += file.size();
         emit setProgressBar(int(processed * 100 / total));
+        emit setStatus("Indexing: " + path);
 
         if (!file.open(QIODevice::ReadWrite)) {
             emit sendIOError(path);
@@ -86,6 +87,13 @@ void Indexer::indexDirectory() {
 
         QByteArray arr;
         while (!file.atEnd()) {
+            if (QThread::currentThread()->isInterruptionRequested()) {
+                this->moveToThread(baseThread);
+                emit setStatus("Process was interrupted");
+                emit initIndex();
+                return;
+            }
+
             arr = file.read(BLOCK_SIZE);
 
             if (!isTextData(arr)) {
@@ -93,8 +101,7 @@ void Indexer::indexDirectory() {
                 break;
             }
 
-            std::set<uint32_t> newTrigrams = splitTrigrams(arr);
-            trigrams.insert(newTrigrams.begin(), newTrigrams.end());
+            addTrigrams(trigrams, arr);
 
             if (arr.size() > 2)
                 arr = arr.mid(arr.size() - 2, 2);
@@ -112,16 +119,14 @@ void Indexer::indexDirectory() {
     emit initSearch();
 };
 
-std::set<uint32_t> Indexer::splitTrigrams(const QByteArray& data) {
-    std::set<uint32_t> trigrams;
-    uint32_t value = 256u * uint8_t(data.at(0)) + uint8_t(data.at(1));
-    for (int i = 2; i < data.size(); i++) {
+void Indexer::addTrigrams(std::unordered_set<uint32_t>& trigrams, const QByteArray& data) {
+    uint32_t value = 256u * uint8_t(data[0]) + uint8_t(data[1]);
+    for (int i = 2, size = data.size(); i < size; i++) {
         value <<= 8;
-        value += uint8_t(data.at(i));
+        value += uint8_t(data[i]);
         value &= (1u << 24) - 1;
         trigrams.insert(value);
     }
-    return trigrams;
 }
 
 bool Indexer::isTextData(const QByteArray& data) {
@@ -141,7 +146,8 @@ void Indexer::search() {
     emit setProgressBar(0);
     QByteArray byteQuery = query.toUtf8();
 
-    std::set<uint32_t> trigrams = splitTrigrams(byteQuery);
+    std::unordered_set<uint32_t> trigrams;
+    addTrigrams(trigrams, byteQuery);
     QVector<QString> goodFiles;
     goodFiles.clear();
 
@@ -155,8 +161,14 @@ void Indexer::search() {
             return;
         }
 
-        if (std::includes(fileTrigrams.begin(), fileTrigrams.end(),
-                          trigrams.begin(), trigrams.end())) {
+        bool hasAllTrigrams = true;
+        for (uint32_t trigram: trigrams)
+            if (fileTrigrams.find(trigram) == fileTrigrams.end()) {
+                hasAllTrigrams = false;
+                break;
+            }
+
+        if (hasAllTrigrams) {
             goodFiles.push_back(path);
             total += QFileInfo(path).size();
         }

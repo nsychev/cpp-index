@@ -3,13 +3,13 @@
 
 #include <QObject>
 #include <map>
-#include <set>
+#include <unordered_set>
 #include <QString>
 #include <QFileSystemWatcher>
 #include <QThread>
 
 
-const uint32_t BLOCK_SIZE = 8192;
+const uint32_t BLOCK_SIZE = 65536;
 
 
 class Indexer : public QObject
@@ -43,13 +43,14 @@ private:
     QString query;
 
     // path: set<trigrams>
-    std::map<QString, std::set<uint32_t>> index;
+    std::map<QString, std::unordered_set<uint32_t>> index;
 
     QSet<uint32_t> getTrigrams(QString data);
     bool isTextData(const QByteArray&);
-    std::set<uint32_t> splitTrigrams(const QByteArray&);
 
     qint64 totalFiles = 0;
+
+    void addTrigrams(std::unordered_set<uint32_t>&, const QByteArray&);
 };
 
 #endif // INDEXER_HPP
