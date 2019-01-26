@@ -73,6 +73,7 @@ void MainWindow::indexDirectory() {
     connect(indexer, &Indexer::initSearch, this, &MainWindow::initSearch);
     connect(indexer, &Indexer::setProgressBar, this, &MainWindow::updateProgressBar);
     connect(indexer, &Indexer::setStatus, this, &MainWindow::updateStatus);
+    connect(indexer, &Indexer::sendIOError, this, &MainWindow::getIOError);
 
     connect(indexer, &Indexer::sendFile, this, &MainWindow::getFile);
 
