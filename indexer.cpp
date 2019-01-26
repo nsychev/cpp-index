@@ -11,13 +11,13 @@
 Indexer::Indexer(QString path, QThread *baseThread):
     path(path), baseThread(baseThread)
 {
-    watcher.addPath(path);
     connect(&watcher, &QFileSystemWatcher::fileChanged, this, &Indexer::changed);
     connect(&watcher, &QFileSystemWatcher::directoryChanged, this, &Indexer::changed);
 }
 
 Indexer::~Indexer() {
     disconnect(this, nullptr, nullptr, nullptr);
+    disconnect(&watcher, nullptr, nullptr, nullptr);
 }
 
 void Indexer::changed(QString path) {
@@ -26,6 +26,21 @@ void Indexer::changed(QString path) {
 
 void Indexer::indexDirectory() {
     QDir dir(path);
+
+    QDirIterator dirIt(path, QDir::AllDirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+
+    while (dirIt.hasNext()) {
+        if (QThread::currentThread()->isInterruptionRequested()) {
+            this->moveToThread(baseThread);
+            emit setStatus("Process was interrupted");
+            emit initIndex();
+            return;
+        }
+        dirIt.next();
+
+        watcher.addPath(dirIt.filePath());
+    }
+
     QDirIterator it(path, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
 
     qint64 total = 0;
@@ -185,7 +200,7 @@ void Indexer::search() {
         }
 
         if (found)
-            emit sendFile(path, 1);
+            emit sendFile(path);
 
         file.close();
     }

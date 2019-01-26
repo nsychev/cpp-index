@@ -35,7 +35,7 @@ private slots:
     void initSearch();
 
     void openFile(QTreeWidgetItem*, int);
-    void getFile(QString, quint32);
+    void getFile(QString);
 
     void getIOError(QString);
 signals:

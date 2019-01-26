@@ -133,10 +133,10 @@ void MainWindow::openFile(QTreeWidgetItem *item, int column) {
     QDesktopServices::openUrl(QUrl::fromLocalFile(item->data(0, Qt::DisplayRole).toString()));
 }
 
-void MainWindow::getFile(QString path, quint32 occurences) {
+void MainWindow::getFile(QString path) {
     new QTreeWidgetItem(
         ui->fileList,
-        QStringList({path, QString::number(occurences)})
+        QStringList({path})
     );
 }
 

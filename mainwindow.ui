@@ -25,16 +25,11 @@
     <item row="3" column="0" colspan="2">
      <widget class="QTreeWidget" name="fileList">
       <property name="columnCount">
-       <number>2</number>
+       <number>1</number>
       </property>
       <column>
        <property name="text">
         <string>Path</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Count</string>
        </property>
       </column>
      </widget>

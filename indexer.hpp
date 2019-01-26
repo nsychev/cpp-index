@@ -31,7 +31,7 @@ signals:
 
     void setProgressBar(int progress);
     void setStatus(QString message);
-    void sendFile(QString path, quint32 occurences);
+    void sendFile(QString path);
     void sendChanged(QString path);
 
     void sendIOError(QString path);
